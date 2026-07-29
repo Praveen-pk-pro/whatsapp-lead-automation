@@ -1,0 +1,36 @@
+name: WhatsApp Lead Distribution
+
+on:
+  schedule:
+    # Every 5 hours. GitHub Actions cron is UTC.
+    - cron: "0 */5 * * *"
+  workflow_dispatch: {}   # allows manual "Run workflow" trigger for testing
+
+jobs:
+  distribute:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15   # 5 leads * up to 60s delay + retries, well within this
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run lead distribution
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          WA_PHONE_NUMBER_ID: ${{ secrets.WA_PHONE_NUMBER_ID }}
+          WA_ACCESS_TOKEN: ${{ secrets.WA_ACCESS_TOKEN }}
+          WA_API_VERSION: "v20.0"
+          LEADS_PER_RUN: "5"
+          DAILY_LEAD_CAP: "20"
+          MIN_DELAY_SECONDS: "20"
+          MAX_DELAY_SECONDS: "60"
+          MAX_RETRIES: "3"
+        run: python src/distribute_leads.py
